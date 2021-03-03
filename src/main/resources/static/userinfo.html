@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/vue-router.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/axios.min.js"></script>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+<div id="div1">
+    <el-table :data="users" border style="width: 100%">
+        <el-table-column fixed prop="id" label="用户ID" width="100">
+        </el-table-column>
+        <el-table-column fixed prop="username" label="用户名" width="150">
+        </el-table-column>
+        <el-table-column fixed prop="password" label="密码" width="300">
+        </el-table-column>
+
+        <el-table-column fixed="right" label="操作" width="300">
+            <template slot-scope="scope">
+                <el-button type="text" >查看信息</el-button>
+                <el-button type="text" >修改信息</el-button>
+                <el-button type="text" >删除用户</el-button>
+                <el-button  @click="showAl(scope.row.id)" type="text" v-if="isRole">授予角色</el-button>
+            </template>
+        </el-table-column>
+    </el-table>
+    <el-pagination
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="current"
+            :page-sizes="[10, 15, 20, 25]"
+            :page-size="size"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total">
+    </el-pagination>
+
+    <el-dialog
+            title="提示"
+            :visible.sync="dialogVisible"
+            width="30%"
+            :before-close="handleClose">
+        <div>
+            <el-checkbox-group v-model="perRoVo.checkList">
+                <el-checkbox :label="role" v-for="role in allRoles"></el-checkbox>
+            </el-checkbox-group>
+        </div>
+        <span slot="footer" class="dialog-footer">
+    <el-button @click="dialogVisible = false">取 消</el-button>
+    <el-button type="primary" @click="doIt">确 定</el-button>
+  </span>
+    </el-dialog>
+</div>
+
+</body>
+<script>
+    new Vue({
+        el: "#div1",
+        data:{
+            users: [],
+            current: 1,
+            size:10,
+            total:0,
+            isRole:false,
+            dialogVisible: false,
+            allRoles:[],
+            perRoVo:{
+                id : 0,
+                checkList: []
+            }
+        },
+        methods: {
+            query: function (current, size) {
+                var _this = this;
+                //获取数据
+                axios.post('/user/getUsers', {
+                    size: _this.size,
+                    current: _this.current
+                }).then(function (data) {
+                    _this.users = data.data.records;
+                    _this.current = data.data.current;
+                    _this.max = data.data.pages;
+                    _this.size = data.data.size;
+                    _this.total = data.data.total;
+                })
+            },
+            handleSizeChange:function(val) {
+                this.query(this.current,val);
+            },
+            handleCurrentChange:function(val) {
+                this.query(val,this.size);
+            },
+            getPermissionsById:function(){
+                var _this = this;
+                axios.post("/permission/getPermissionsById").then(resp=>{
+                    for (var i = 0; i < resp.data.data.length; i++) {
+                        if (resp.data.data[i]=='授予角色') {
+                            _this.isRole = true;
+                            break;
+                        }
+                    }
+                })
+            },
+            handleClose:function(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                    done();
+                })
+                .catch(_ => {});
+            },
+            showAl:function(id){
+                this.perRoVo.id=id;
+                axios.post("/permission/getRoles").then(resp=>{
+                    this.allRoles = resp.data.data;
+                })
+                //获取这个人的role
+                axios.post("/permission/getRolesById",this.perRoVo).then(resp=>{
+                    this.perRoVo.checkList = resp.data.data;
+                })
+                this.dialogVisible = true;
+            },
+            doIt:function () {
+                this.dialogVisible = false;
+                console.log(this.perRoVo);
+                axios.post("/permission/setRoles",this.perRoVo).then(function (value) {
+
+                })
+            }
+        },
+        created:function() {
+            this.getPermissionsById();
+            this.query(this.current,this.size);
+        }
+    })
+</script>
+</html>

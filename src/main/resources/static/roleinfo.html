@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/vue-router.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/axios.min.js"></script>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+    <div id="div1">
+        <el-table :data="roles" border style="width: 100%">
+            <el-table-column fixed prop="id" label="id" width="300">
+            </el-table-column>
+            <el-table-column fixed prop="rolename" label="角色" width="300">
+            </el-table-column>
+
+            <el-table-column fixed="right" label="操作" width="300">
+                <template slot-scope="scope">
+                    <el-button type="text" @click="show(scope.row.id)">修改权限</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <el-dialog
+                title="提示"
+                :visible.sync="dialogVisible"
+                width="30%"
+                :before-close="handleClose">
+            <div>
+                <el-tree
+                        ref="tree"
+                        :data="permissions"
+                        show-checkbox
+                        node-key="id"
+                        :default-checked-keys="hasPers"
+                        :props="defaultProps">
+                </el-tree>
+            </div>
+            <span slot="footer" class="dialog-footer">
+    <el-button @click="dialogVisible = false">取 消</el-button>
+    <el-button type="primary" @click="doIt">确 定</el-button>
+  </span>
+        </el-dialog>
+    </div>
+</body>
+<script>
+    new Vue({
+        el:"#div1",
+        data:{
+            upId:-1,
+            roles:[],
+            dialogVisible: false,
+            permissions:[],
+            hasPers:[],
+            defaultProps: {
+                children: 'child',
+                label: 'element'
+            },
+            res:[]
+        },
+        methods:{
+            show:function(id) {
+                this.upId = id;
+                this.hasPers = [];
+                this.show1();
+                var _this = this;
+                axios.get("/role/getPermissionsById?id="+id).then(function (data) {
+                    _this.hasPers = data.data.data;
+                });
+
+                this.dialogVisible = true;
+            },
+            show1:function(){
+                axios.get("/role/getAllPer").then(resp1=>{
+                    this.permissions = resp1.data.data;
+                });
+            },
+            handleClose:function(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                    done();
+            })
+            .catch(_ => {});
+            },
+            doIt:function () {
+                var rs = this.$refs.tree.getCheckedNodes(false,true);
+                for (var i = 0; i < rs.length; i++) {
+                    this.res.push(rs[i].id);
+                }
+                axios.post("/role/updatePersById",{
+                    checkList : this.res,
+                    id : this.upId
+                }).then(resp=>{
+
+                });
+
+                this.dialogVisible = false;
+                this.res = [];
+            }
+        },
+        created:function(){
+            axios.post("/role/getAllRoles").then(resp=>{
+                this.roles = resp.data.data;
+            });
+        }
+    })
+</script>
+
+
+</html>

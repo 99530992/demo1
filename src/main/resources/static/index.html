@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>index</title>
+    <script src="js/vue-router.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/axios.min.js"></script>
+    <link rel="stylesheet" href="css/index.css">
+
+    <style>
+        .el-header {
+            background-color: #B3C0D1;
+            color: #333;
+            line-height: 60px;
+        }
+
+        .el-aside {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div id="div1">
+    <h2>欢迎使用本系统,{{username}} <a href="/login.html">注销</a></h2>
+    <el-container style="border: 1px solid #eee">
+        <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+            <el-menu>
+                <el-submenu index="index+''" v-for="menu,index in menus">
+                    <template slot="title">{{menu.element}}</template>
+                    <el-menu-item-group v-for="childs,cindex in menu.child">
+                        <el-menu-item index="cindex+''"><a :href="childs.url" target="main">{{childs.element}}</a></el-menu-item>
+                    </el-menu-item-group>
+                </el-submenu>
+            </el-menu>
+        </el-aside>
+        <el-container>
+
+            <el-main>
+                <iframe name="main" style="width: 80%;height: 600px;border: 0px"></iframe>
+            </el-main>
+        </el-container>
+    </el-container>
+
+</div>
+<script>
+    new Vue({
+        el: "#div1",
+        data: {
+            username:"",
+            menus:[]
+        },
+        methods: {
+            getMenus:function () {
+                var _this = this;
+                axios.get("/user/getMenus").then(function (resp) {
+                    _this.menus = resp.data;
+                })
+            }
+        },
+        created: function () {
+            var logUser = JSON.parse(sessionStorage.getItem('logUser'));
+            if (logUser) {
+                //已登录
+                this.username = logUser.username;
+            } else {
+                //未登录
+                location.href="/login.html";
+            }
+
+            this.getMenus();
+        }
+    })
+</script>
+</body>
+</html>
